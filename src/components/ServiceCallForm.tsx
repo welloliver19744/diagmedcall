@@ -86,6 +86,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
     } else {
       setForm(empty);
     }
+    setClientId(editing?.client_id ?? "");
   }, [editing, open]);
 
   const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
@@ -115,6 +116,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
         notes: parsed.data.notes || null,
         value: parsed.data.value ? parseFloat(parsed.data.value.replace(",", ".")) : null,
         user_id: userData.user.id,
+        client_id: clientId && clientId !== "_none" ? clientId : null,
       };
 
       const { error } = editing
@@ -139,6 +141,16 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
           <DialogTitle>{editing ? "Editar Chamado" : "Novo Atendimento"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="md:col-span-2 space-y-2">
+            <Label>Vincular a um cliente cadastrado (opcional)</Label>
+            <Select value={clientId} onValueChange={pickClient}>
+              <SelectTrigger><SelectValue placeholder="Selecionar cliente..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Nenhum —</SelectItem>
+                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label>Cliente *</Label>
             <Input value={form.client_name} onChange={(e) => set("client_name", e.target.value)} required />
