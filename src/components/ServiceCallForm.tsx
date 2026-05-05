@@ -52,6 +52,21 @@ const empty = {
 export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props) => {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [clients, setClients] = useState<ClientRow[]>([]);
+  const [clientId, setClientId] = useState<string>("");
+
+  useEffect(() => {
+    if (open) {
+      supabase.from("clients").select("*").order("name").then(({ data }) => setClients(data ?? []));
+    }
+  }, [open]);
+
+  const pickClient = (id: string) => {
+    setClientId(id);
+    if (id === "_none") return;
+    const c = clients.find((x) => x.id === id);
+    if (c) setForm((s) => ({ ...s, client_name: c.name, contact: c.contact ?? s.contact, address: c.address ?? s.address }));
+  };
 
   useEffect(() => {
     if (editing) {
