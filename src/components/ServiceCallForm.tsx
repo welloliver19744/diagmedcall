@@ -90,6 +90,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
       setForm(empty);
     }
     setClientId(editing?.client_id ?? "");
+    setAssignedTo((editing as any)?.assigned_to ?? "_none");
   }, [editing, open]);
 
   const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
