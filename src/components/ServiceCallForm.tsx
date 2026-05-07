@@ -54,10 +54,13 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
   const [saving, setSaving] = useState(false);
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [clientId, setClientId] = useState<string>("");
+  const [techs, setTechs] = useState<{ id: string; full_name: string | null }[]>([]);
+  const [assignedTo, setAssignedTo] = useState<string>("_none");
 
   useEffect(() => {
     if (open) {
       supabase.from("clients").select("*").order("name").then(({ data }) => setClients(data ?? []));
+      supabase.from("profiles").select("id, full_name").order("full_name").then(({ data }) => setTechs(data ?? []));
     }
   }, [open]);
 
@@ -87,6 +90,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
       setForm(empty);
     }
     setClientId(editing?.client_id ?? "");
+    setAssignedTo((editing as any)?.assigned_to ?? "_none");
   }, [editing, open]);
 
   const set = (k: keyof typeof form, v: string) => setForm((s) => ({ ...s, [k]: v }));
@@ -117,6 +121,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
         value: parsed.data.value ? parseFloat(parsed.data.value.replace(",", ".")) : null,
         user_id: userData.user.id,
         client_id: clientId && clientId !== "_none" ? clientId : null,
+        assigned_to: assignedTo && assignedTo !== "_none" ? assignedTo : null,
       };
 
       const { error } = editing
@@ -169,7 +174,13 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
           </div>
           <div className="space-y-2">
             <Label>Técnico responsável</Label>
-            <Input value={form.technician} onChange={(e) => set("technician", e.target.value)} />
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger><SelectValue placeholder="Atribuir..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Sem atribuição —</SelectItem>
+                {techs.map((t) => <SelectItem key={t.id} value={t.id}>{t.full_name ?? t.id.slice(0, 8)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Defeito reclamado</Label>

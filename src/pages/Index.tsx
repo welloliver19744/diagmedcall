@@ -13,6 +13,7 @@ import { ServiceCallForm } from "@/components/ServiceCallForm";
 import { PageHeader } from "@/components/AppLayout";
 import { generateServiceCallPDF } from "@/lib/pdf";
 import { toast } from "sonner";
+import { useRole } from "@/hooks/use-role";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ServiceCall = Tables<"service_calls">;
@@ -25,6 +26,7 @@ const statusLabels: Record<string, { label: string; cls: string }> = {
 };
 
 const Index = () => {
+  const { isStaff } = useRole();
   const [calls, setCalls] = useState<ServiceCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -80,11 +82,11 @@ const Index = () => {
       <PageHeader
         title="Chamados Técnicos"
         subtitle="Gerencie todos os atendimentos da sua operação"
-        action={
+        action={isStaff && (
           <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gradient-brand glow-brand text-primary-foreground border-0">
             <Plus className="w-4 h-4 mr-1" /> Novo chamado
           </Button>
-        }
+        )}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -171,9 +173,11 @@ const Index = () => {
                     <Button size="sm" variant="outline" onClick={() => { setEditing(c); setFormOpen(true); }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setDeleteId(c.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    {isStaff && (
+                      <Button size="sm" variant="outline" onClick={() => setDeleteId(c.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Card>

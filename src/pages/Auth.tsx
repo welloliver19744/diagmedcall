@@ -16,7 +16,6 @@ const schema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,28 +29,15 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = schema.safeParse({ email, password });
-    if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
-      return;
-    }
+    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email: parsed.data.email,
-          password: parsed.data.password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
-        });
-        if (error) throw error;
-        toast.success("Conta criada! Verifique seu e-mail para confirmar.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: parsed.data.email,
-          password: parsed.data.password,
-        });
-        if (error) throw error;
-        navigate("/", { replace: true });
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      if (error) throw error;
+      navigate("/", { replace: true });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao autenticar");
     } finally {
@@ -82,17 +68,12 @@ const Auth = () => {
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
+            {loading ? "Aguarde..." : "Entrar"}
           </Button>
         </form>
-
-        <button
-          type="button"
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
-        >
-          {mode === "login" ? "Não tem conta? Criar conta" : "Já tem conta? Entrar"}
-        </button>
+        <p className="text-xs text-muted-foreground text-center">
+          O acesso é criado pelo administrador. Solicite seu login para começar.
+        </p>
       </Card>
     </main>
   );

@@ -92,8 +92,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reminders: {
         Row: {
+          assigned_to: string | null
           client_id: string | null
           created_at: string
           description: string | null
@@ -106,6 +131,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           description?: string | null
@@ -118,6 +144,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           client_id?: string | null
           created_at?: string
           description?: string | null
@@ -149,6 +176,7 @@ export type Database = {
       service_calls: {
         Row: {
           address: string | null
+          assigned_to: string | null
           client_id: string | null
           client_name: string
           contact: string | null
@@ -167,6 +195,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          assigned_to?: string | null
           client_id?: string | null
           client_name: string
           contact?: string | null
@@ -185,6 +214,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          assigned_to?: string | null
           client_id?: string | null
           client_name?: string
           contact?: string | null
@@ -211,15 +241,43 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "technician"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -346,6 +404,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "technician"],
+    },
   },
 } as const
