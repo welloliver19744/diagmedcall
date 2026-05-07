@@ -10,6 +10,7 @@ import Clients from "./pages/Clients.tsx";
 import Parts from "./pages/Parts.tsx";
 import Reminders from "./pages/Reminders.tsx";
 import Reports from "./pages/Reports.tsx";
+import Team from "./pages/Team.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
