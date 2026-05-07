@@ -26,6 +26,7 @@ const statusLabels: Record<string, { label: string; cls: string }> = {
 };
 
 const Index = () => {
+  const { isStaff } = useRole();
   const [calls, setCalls] = useState<ServiceCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
