@@ -174,7 +174,13 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
           </div>
           <div className="space-y-2">
             <Label>Técnico responsável</Label>
-            <Input value={form.technician} onChange={(e) => set("technician", e.target.value)} />
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger><SelectValue placeholder="Atribuir..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Sem atribuição —</SelectItem>
+                {techs.map((t) => <SelectItem key={t.id} value={t.id}>{t.full_name ?? t.id.slice(0, 8)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Defeito reclamado</Label>
