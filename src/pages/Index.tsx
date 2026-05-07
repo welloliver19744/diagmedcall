@@ -173,9 +173,11 @@ const Index = () => {
                     <Button size="sm" variant="outline" onClick={() => { setEditing(c); setFormOpen(true); }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setDeleteId(c.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    {isStaff && (
+                      <Button size="sm" variant="outline" onClick={() => setDeleteId(c.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </Card>
