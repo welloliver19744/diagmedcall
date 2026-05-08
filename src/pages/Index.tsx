@@ -167,7 +167,7 @@ const Index = () => {
                   </div>
 
                   <div className="flex lg:flex-col gap-2">
-                    <Button size="sm" variant="outline" onClick={() => generateServiceCallPDF(c)} title="Gerar OS em PDF">
+                    <Button size="sm" variant="outline" onClick={() => { generateServiceCallPDF(c); }} title="Gerar OS em PDF">
                       <FileDown className="w-3.5 h-3.5" />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setEditing(c); setFormOpen(true); }}>

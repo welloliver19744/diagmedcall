@@ -98,6 +98,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          signature_url: string | null
           updated_at: string
         }
         Insert: {
@@ -105,6 +106,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          signature_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          signature_url?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -176,60 +179,117 @@ export type Database = {
       service_calls: {
         Row: {
           address: string | null
+          approved_by: string | null
           assigned_to: string | null
           client_id: string | null
           client_name: string
+          client_signature: string | null
           contact: string | null
+          counter_odometer: string | null
           created_at: string
+          equipment_serial: string | null
+          equipment_type: string | null
           id: string
+          in_contract: boolean | null
+          in_warranty: boolean | null
+          installed_at: string | null
+          lot_number: string | null
           notes: string | null
+          parts_priority: string | null
           parts_replaced: string | null
+          parts_requested: Json | null
+          parts_used: Json | null
+          report_number: string | null
+          report_type: string
           reported_defect: string | null
+          responsible_employee: string | null
           service_date: string
           service_performed: string | null
           status: string
           technician: string | null
+          transformer_serial: string | null
           updated_at: string
           user_id: string
           value: number | null
+          verified_tested: boolean | null
+          working_after: boolean | null
+          working_before: boolean | null
         }
         Insert: {
           address?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
           client_id?: string | null
           client_name: string
+          client_signature?: string | null
           contact?: string | null
+          counter_odometer?: string | null
           created_at?: string
+          equipment_serial?: string | null
+          equipment_type?: string | null
           id?: string
+          in_contract?: boolean | null
+          in_warranty?: boolean | null
+          installed_at?: string | null
+          lot_number?: string | null
           notes?: string | null
+          parts_priority?: string | null
           parts_replaced?: string | null
+          parts_requested?: Json | null
+          parts_used?: Json | null
+          report_number?: string | null
+          report_type?: string
           reported_defect?: string | null
+          responsible_employee?: string | null
           service_date?: string
           service_performed?: string | null
           status?: string
           technician?: string | null
+          transformer_serial?: string | null
           updated_at?: string
           user_id: string
           value?: number | null
+          verified_tested?: boolean | null
+          working_after?: boolean | null
+          working_before?: boolean | null
         }
         Update: {
           address?: string | null
+          approved_by?: string | null
           assigned_to?: string | null
           client_id?: string | null
           client_name?: string
+          client_signature?: string | null
           contact?: string | null
+          counter_odometer?: string | null
           created_at?: string
+          equipment_serial?: string | null
+          equipment_type?: string | null
           id?: string
+          in_contract?: boolean | null
+          in_warranty?: boolean | null
+          installed_at?: string | null
+          lot_number?: string | null
           notes?: string | null
+          parts_priority?: string | null
           parts_replaced?: string | null
+          parts_requested?: Json | null
+          parts_used?: Json | null
+          report_number?: string | null
+          report_type?: string
           reported_defect?: string | null
+          responsible_employee?: string | null
           service_date?: string
           service_performed?: string | null
           status?: string
           technician?: string | null
+          transformer_serial?: string | null
           updated_at?: string
           user_id?: string
           value?: number | null
+          verified_tested?: boolean | null
+          working_after?: boolean | null
+          working_before?: boolean | null
         }
         Relationships: [
           {

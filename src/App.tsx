@@ -11,6 +11,7 @@ import Parts from "./pages/Parts.tsx";
 import Reminders from "./pages/Reminders.tsx";
 import Reports from "./pages/Reports.tsx";
 import Team from "./pages/Team.tsx";
+import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/team" element={<Team />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

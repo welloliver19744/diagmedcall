@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "signatures public read" ON storage.objects;
