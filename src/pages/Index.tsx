@@ -8,7 +8,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Wrench, Search, Pencil, Trash2, Calendar, MapPin, Phone, User, FileDown } from "lucide-react";
+import { Plus, Wrench, Search, Pencil, Trash2, Calendar, MapPin, Phone, User, FileDown, Share2 } from "lucide-react";
 import { ServiceCallForm } from "@/components/ServiceCallForm";
 import { PageHeader } from "@/components/AppLayout";
 import { generateServiceCallPDF } from "@/lib/pdf";
@@ -170,6 +170,19 @@ const Index = () => {
                     <Button size="sm" variant="outline" onClick={() => { generateServiceCallPDF(c); }} title="Gerar OS em PDF">
                       <FileDown className="w-3.5 h-3.5" />
                     </Button>
+                    {(c as any).public_token && (
+                      <Button size="sm" variant="outline" title="Compartilhar link com o cliente" onClick={async () => {
+                        const url = `${window.location.origin}/portal/${(c as any).public_token}`;
+                        const msg = `Olá! Acesse o relatório do serviço e assine: ${url}`;
+                        if (navigator.share) {
+                          try { await navigator.share({ title: "Relatório de Serviço", text: msg, url }); return; } catch {}
+                        }
+                        await navigator.clipboard.writeText(url);
+                        toast.success("Link copiado! Envie ao cliente.");
+                      }}>
+                        <Share2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => { setEditing(c); setFormOpen(true); }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
