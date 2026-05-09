@@ -13,6 +13,7 @@ import Reports from "./pages/Reports.tsx";
 import Team from "./pages/Team.tsx";
 import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ClientPortal from "./pages/ClientPortal.tsx";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/portal/:token" element={<ClientPortal />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<Index />} />
             <Route path="/clients" element={<Clients />} />
