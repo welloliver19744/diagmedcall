@@ -3,10 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Chamado Fácil manages technical service calls, tracking customer details, service history, and repairs.">
-    <meta name="author" content="Lovable" />
+    <title>DiagMed Call — Chamados Técnicos</title>
+    <meta name="description" content="DiagMed Call gerencia chamados técnicos, clientes, histórico de serviços e reparos com IA.">
+    <meta name="author" content="DiagMed Call" />
 
     <!-- TODO: Update og:title to match your application name -->
     
@@ -17,15 +16,23 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/77e0577b-2b0c-4961-af95-aacd78e95204/id-preview-31a860bd--835e9c11-0e20-438a-87a1-b3f5f29c445d.lovable.app-1777972290432.png">
-    <meta property="og:title" content="Lovable App">
-  <meta name="twitter:title" content="Lovable App">
-  <meta property="og:description" content="Chamado Fácil manages technical service calls, tracking customer details, service history, and repairs.">
-  <meta name="twitter:description" content="Chamado Fácil manages technical service calls, tracking customer details, service history, and repairs.">
+    <meta property="og:title" content="DiagMed Call — Chamados Técnicos">
+  <meta name="twitter:title" content="DiagMed Call — Chamados Técnicos">
+  <meta property="og:description" content="DiagMed Call gerencia chamados técnicos, clientes, histórico de serviços e reparos com IA.">
+  <meta name="twitter:description" content="DiagMed Call gerencia chamados técnicos, clientes, histórico de serviços e reparos com IA.">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; font-family: sans-serif; background-color: #f8fafc;">
+        <div style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top: 3px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 16px; color: #64748b; font-size: 14px; font-weight: 500;">Carregando DiagMed Call...</p>
+      </div>
+    </div>
+    <style>
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
