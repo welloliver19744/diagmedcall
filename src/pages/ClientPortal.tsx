@@ -59,7 +59,10 @@ export default function ClientPortal() {
   const handleDownload = async () => {
     if (!data) return;
     try {
-      const sc = { ...data.service_call, client_signature: signature || data.service_call.client_signature };
+      // Prioriza a assinatura do estado local (recém-feita) ou a do banco
+      const currentSignature = signature || data.service_call?.client_signature;
+      
+      const sc = { ...data.service_call, client_signature: currentSignature };
       await generateServiceCallPDF(sc, {
         techName: data.technician?.full_name,
         techSignatureUrl: data.technician?.signature_url,

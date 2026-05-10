@@ -16,12 +16,23 @@ export const SignaturePad = ({ value, onChange, height = 160 }: Props) => {
   useEffect(() => {
     const canvas = canvasRef.current!;
     const resize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
-      canvas.getContext("2d")!.scale(ratio, ratio);
-      padRef.current?.clear();
-      if (value) padRef.current?.fromDataURL(value);
+      const width = canvas.offsetWidth;
+      const height = canvas.offsetHeight;
+      
+      // Só redimensiona se o tamanho realmente mudou (evita bugs em mobile ao rolar a página)
+      if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
+        const data = padRef.current?.toDataURL(); // Salva o que já foi desenhado
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.getContext("2d")!.scale(ratio, ratio);
+        padRef.current?.clear();
+        if (data) padRef.current?.fromDataURL(data); // Restaura após o resize
+        else if (value) padRef.current?.fromDataURL(value);
+      }
     };
     padRef.current = new SignaturePadLib(canvas, {
       backgroundColor: "rgba(255,255,255,1)",

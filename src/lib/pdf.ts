@@ -65,7 +65,11 @@ export async function generateServiceCallPDF(
     }
   }
   if (c.client_signature) {
-    clientSignature = c.client_signature.startsWith("http") ? await urlToDataUrl(c.client_signature) : c.client_signature;
+    if (c.client_signature.startsWith("http")) {
+      clientSignature = await urlToDataUrl(c.client_signature);
+    } else if (c.client_signature.startsWith("data:image")) {
+      clientSignature = c.client_signature;
+    }
   }
 
   const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -241,8 +245,22 @@ export async function generateServiceCallPDF(
   doc.line(M + 140, y + 5.5, M + RW, y + 5.5);
 
   // Diminuí a altura da imagem (de 12 para 10) e ajustei a posição (y - 7) para não subir na linha de cima
-  if (techSignature) try { doc.addImage(techSignature, "PNG", M + 45, y - 7, 45, 10); } catch {}
-  if (clientSignature) try { doc.addImage(clientSignature, "PNG", M + 145, y - 7, 45, 10); } catch {}
+  if (techSignature) {
+    try { 
+      const format = techSignature.includes("jpeg") || techSignature.includes("jpg") ? "JPEG" : "PNG";
+      doc.addImage(techSignature, format, M + 45, y - 7, 45, 10); 
+    } catch (e) {
+      console.error("Erro ao adicionar assinatura do técnico ao PDF:", e);
+    }
+  }
+  if (clientSignature) {
+    try { 
+      const format = clientSignature.includes("jpeg") || clientSignature.includes("jpg") ? "JPEG" : "PNG";
+      doc.addImage(clientSignature, format, M + 145, y - 7, 45, 10); 
+    } catch (e) {
+      console.error("Erro ao adicionar assinatura do cliente ao PDF:", e);
+    }
+  }
   
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
   doc.text(c.client_name || "", M + 170, y + 9, { align: "center" });
