@@ -85,10 +85,16 @@ export default function ClientsPage() {
       const historyText = calls.map(c => `Data: ${c.service_date}, Defeito: ${c.reported_defect}, Serviço: ${c.service_performed}`).join("\n");
       
       const localKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (!localKey) {
+        throw new Error("Chave VITE_GROQ_API_KEY não encontrada no ambiente.");
+      }
+
+      console.log("Enviando histórico para IA:", historyText);
+
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${localKey}`,
+          "Authorization": `Bearer ${localKey.trim()}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -96,11 +102,12 @@ export default function ClientsPage() {
           messages: [
             { 
               role: "system", 
-              content: "Você é um consultor técnico de engenharia clínica. Resuma o histórico de manutenção deste cliente em 3 pontos principais, destacando recorrências ou alertas." 
+              content: "Você é um consultor técnico de engenharia clínica. Resuma o histórico de manutenção deste cliente em 3 pontos principais, destacando recorrências ou alertas. Responda de forma direta." 
             },
-            { role: "user", content: `Histórico:\n${historyText}` }
+            { role: "user", content: `Cliente: ${clientName}\n\nHistórico:\n${historyText}` }
           ],
           temperature: 0.3,
+          max_tokens: 500
         }),
       });
       
