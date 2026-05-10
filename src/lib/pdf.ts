@@ -86,9 +86,13 @@ export async function generateServiceCallPDF(
   const W = 210, H = 297;
   const M = 10;
   const RW = W - 2 * M;
+  const MAX_Y = H - M; // 287mm
+
+  // ---- Main Page Border ----
+  doc.setDrawColor(0); doc.setLineWidth(0.3);
+  doc.rect(M, M, RW, H - 2 * M);
 
   // ---- Header ----
-  doc.setDrawColor(0); doc.setLineWidth(0.3);
   doc.rect(M, M, RW, 22);
   // Logo
   try { doc.addImage(logoUrl, "JPEG", M + 1, M + 1, 30, 20); } catch {}
@@ -134,16 +138,16 @@ export async function generateServiceCallPDF(
   y += 8;
 
   // Helper: row of cells
-  const cellH = 10;
+  const cellH = 9; // Reduzi um pouco a altura das células padrão
   doc.setFontSize(8);
 
   const drawCell = (x: number, yy: number, w: number, h: number, label: string, value?: string | null) => {
     doc.rect(x, yy, w, h);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(80);
-    doc.text(label, x + 1.2, yy + 3);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(6); doc.setTextColor(80);
+    doc.text(label, x + 1.2, yy + 2.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(0);
     const lines = doc.splitTextToSize(value ?? "", w - 2.4);
-    doc.text(lines.slice(0, 2), x + 1.2, yy + 7, { lineHeightFactor: 1.1 });
+    doc.text(lines.slice(0, 1), x + 1.2, yy + 6.5); // Limitei a 1 linha para economizar espaço
   };
 
   const drawCheckCell = (x: number, yy: number, w: number, h: number, label: string, val?: boolean | null) => {
@@ -152,27 +156,27 @@ export async function generateServiceCallPDF(
     doc.text(label, x + 1.2, yy + h / 2 + 1);
     
     const textW = doc.getTextWidth(label);
-    const boxSize = 2.6;
+    const boxSize = 2.4;
     const boxY = yy + h / 2 - boxSize / 2;
     const textY = yy + h / 2 + 1;
 
     // SIM
-    const simBoxX = x + textW + 4;
+    const simBoxX = x + textW + 3;
     doc.setLineWidth(0.2);
     doc.rect(simBoxX, boxY, boxSize, boxSize);
-    doc.text("SIM", simBoxX + boxSize + 1.2, textY);
-    if (val === true) doc.text("X", simBoxX + 0.6, textY);
+    doc.text("SIM", simBoxX + boxSize + 1, textY);
+    if (val === true) doc.text("X", simBoxX + 0.5, textY);
 
     // NÃO
-    const naoBoxX = simBoxX + 12;
+    const naoBoxX = simBoxX + 10;
     doc.rect(naoBoxX, boxY, boxSize, boxSize);
-    doc.text("NÃO", naoBoxX + boxSize + 1.2, textY);
-    if (val === false) doc.text("X", naoBoxX + 0.6, textY);
+    doc.text("NÃO", naoBoxX + boxSize + 1, textY);
+    if (val === false) doc.text("X", naoBoxX + 0.5, textY);
   };
 
   // Row 1: Técnico + Endereço
-  drawCell(M, y, RW * 0.5, cellH, "Técnico executor:", techName);
-  drawCell(M + RW * 0.5, y, RW * 0.5, cellH, "Endereço:", c.address);
+  drawCell(M, y, RW * 0.45, cellH, "Técnico executor:", techName);
+  drawCell(M + RW * 0.45, y, RW * 0.55, cellH, "Endereço:", c.address);
   y += cellH;
 
   // Row 2: Cliente + Data + Relatório nº
@@ -218,163 +222,125 @@ export async function generateServiceCallPDF(
 
   // Helper for dynamic multi-line blocks
   const drawDynamicBlock = (label: string, value: string | null | undefined, minH: number) => {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
     const lines = doc.splitTextToSize(value ?? "", RW - 4);
-    const textH = lines.length * 4.5; // roughly 4.5mm per line
-    const h = Math.max(minH, textH + 8);
+    const textH = lines.length * 4.2;
+    const h = Math.min(minH + 10, Math.max(minH, textH + 7)); // Limitei o crescimento máximo
     
     doc.rect(M, y, RW, h);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-    doc.text(label, M + 1.2, y + 4);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text(lines, M + 1.2, y + 9, { lineHeightFactor: 1.15 });
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+    doc.text(label, M + 1.2, y + 3.5);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+    doc.text(lines.slice(0, 10), M + 1.2, y + 8, { lineHeightFactor: 1.1 }); // Limitei a 10 linhas
     y += h;
   };
 
-  // Row 8: Descrição do problema
-  drawDynamicBlock("Descrição do problema:", c.reported_defect, 30);
+  // Blocos principais
+  drawDynamicBlock("Descrição do problema:", c.reported_defect, 22);
+  drawDynamicBlock("Causa do problema diagnosticado pelo técnico e ação corretiva de serviço ou reparo realizado:", c.service_performed, 35);
 
-  // Row 9: Causa diagnosticada e ação corretiva
-  drawDynamicBlock("Causa do problema diagnosticado pelo técnico e ação corretiva de serviço ou reparo realizado:", c.service_performed, 50);
-
-  // Row 10: Verificado e testado?
-  doc.rect(M, y, RW, 12);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-  doc.text("Verificado e testado?", M + 1.2, y + 4.5);
-  
-  const boxS2 = 2.6;
-  const simX = M + 35;
-  doc.rect(simX, y + 2.5, boxS2, boxS2);
-  doc.text("SIM", simX + 4, y + 4.8);
-  if (c.verified_tested === true) doc.text("X", simX + 0.6, y + 4.6);
-  
-  doc.rect(simX + 15, y + 2.5, boxS2, boxS2);
-  doc.text("NÃO", simX + 19, y + 4.8);
-  if (c.verified_tested === false) doc.text("X", simX + 15.6, y + 4.6);
-  
-  doc.setFontSize(6.5); doc.setFont("helvetica", "normal");
-  doc.text("(Indicar o número do Relatório de Resultados de teste com base nas especificações do produto)", simX + 35, y + 4.8);
-  y += 12;
-
-  // Row 11: Voltou a funcionar?
+  // Verificações
   doc.rect(M, y, RW, 10);
   doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-  doc.text("O equipamento voltou a funcionar após o reparo?", M + 1.2, y + 6);
-  
-  const simX2 = M + 80;
-  doc.rect(simX2, y + 3.5, boxS2, boxS2);
-  doc.text("SIM", simX2 + 4, y + 6);
-  if (c.working_after === true) doc.text("X", simX2 + 0.6, y + 5.8);
-  
-  doc.rect(simX2 + 15, y + 3.5, boxS2, boxS2);
-  doc.text("NÃO", simX2 + 19, y + 6);
-  if (c.working_after === false) doc.text("X", simX2 + 15.6, y + 5.8);
+  doc.text("Verificado e testado?", M + 1.2, y + 4);
+  const simX = M + 35;
+  doc.rect(simX, y + 2, 2.4, 2.4);
+  doc.text("SIM", simX + 3.5, y + 4);
+  if (c.verified_tested === true) doc.text("X", simX + 0.6, y + 3.9);
+  doc.rect(simX + 12, y + 2, 2.4, 2.4);
+  doc.text("NÃO", simX + 15.5, y + 4);
+  if (c.verified_tested === false) doc.text("X", simX + 12.6, y + 3.9);
+  doc.setFontSize(6); doc.setFont("helvetica", "normal");
+  doc.text("(Indicar o número do Relatório de Resultados de teste com base nas especificações do produto)", simX + 30, y + 4);
   y += 10;
 
-  // Parts tables for laser
-  const isLaser = c.report_type === "laser";
+  doc.rect(M, y, RW, 8);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+  doc.text("O equipamento voltou a funcionar após o reparo?", M + 1.2, y + 5);
+  const simX2 = M + 75;
+  doc.rect(simX2, y + 3, 2.4, 2.4);
+  doc.text("SIM", simX2 + 3.5, y + 5);
+  if (c.working_after === true) doc.text("X", simX2 + 0.6, y + 4.9);
+  doc.rect(simX2 + 12, y + 3, 2.4, 2.4);
+  doc.text("NÃO", simX2 + 15.5, y + 5);
+  if (c.working_after === false) doc.text("X", simX2 + 12.6, y + 4.9);
+  y += 8;
+
+  // Peças e Observações
   if (isLaser) {
-    const drawPartsTable = (title: string, rows: any[], extraRight?: string) => {
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-      doc.rect(M, y, RW, 6);
-      doc.text(title, M + 1.5, y + 4);
-      if (extraRight) doc.text(extraRight, W - M - 1.5, y + 4, { align: "right" });
-      y += 6;
-      // header row
-      const cw = [RW * 0.15, RW * 0.55, RW * 0.12, RW * 0.18];
-      let hx = M;
-      ["Número", "Descrição", "Qtd.", "NR / OP"].forEach((h, i) => {
-        doc.rect(hx, y, cw[i], 5);
-        doc.setFont("helvetica", "bold"); doc.setFontSize(7);
-        doc.text(h, hx + 1.5, y + 3.5);
-        hx += cw[i];
-      });
+    // Tabela de peças simplificada para caber
+    const drawPartsTable = (title: string, rows: any[]) => {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+      doc.rect(M, y, RW, 5);
+      doc.text(title, M + 1.2, y + 3.5);
       y += 5;
-      const dataRows = rows && rows.length ? rows : [{}, {}, {}];
+      const dataRows = (rows && rows.length ? rows : [{}, {}]).slice(0, 2);
       dataRows.forEach((r: any) => {
-        let hx2 = M;
-        const vals = [r.number ?? "", r.description ?? "", r.qty ?? "", r.nr_op ?? ""];
-        vals.forEach((v, i) => {
-          doc.rect(hx2, y, cw[i], 5);
-          doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-          const lns = doc.splitTextToSize(String(v), cw[i] - 2);
-          doc.text(lns.slice(0, 1), hx2 + 1.2, y + 3.5);
-          hx2 += cw[i];
-        });
-        y += 5;
+        doc.rect(M, y, RW, 4.5);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+        doc.text(`${r.number ?? ""} - ${r.description ?? ""} (${r.qty ?? ""})`, M + 1.2, y + 3.2);
+        y += 4.5;
       });
     };
     drawPartsTable("Peças Utilizadas do Estoque", Array.isArray(c.parts_used) ? c.parts_used : []);
-    const prio = c.parts_priority === "urgente" ? "Urgente [X]   Padrão [ ]" : c.parts_priority === "padrao" ? "Padrão [X]   Urgente [ ]" : "Padrão [ ]   Urgente [ ]";
-    drawPartsTable("Peças a serem requisitadas", Array.isArray(c.parts_requested) ? c.parts_requested : [], prio);
+    drawPartsTable("Peças a serem requisitadas", Array.isArray(c.parts_requested) ? c.parts_requested : []);
   } else if (c.parts_replaced) {
-    drawDynamicBlock("Peças trocadas:", c.parts_replaced, 15);
+    drawDynamicBlock("Peças trocadas:", c.parts_replaced, 12);
   }
 
-  // Row 12: Observações
-  drawDynamicBlock("Observações:", c.notes, 15);
+  drawDynamicBlock("Observações:", c.notes, 12);
 
-  y += 10; // Espaço após as observações
+  // ---- Footer fixo (sempre no final da página) ----
+  const footerY = H - M - 45; // Posiciona as assinaturas e investigação fixas no rodapé
+  y = footerY;
 
   // Linha do Técnico (Nome centralizado na linha)
   doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-  doc.text("Relatório aprovado por:", M, y + 6);
-  
+  doc.text("Relatório aprovado por:", M, y + 5);
   const approvalLineStart = M + 38;
   const approvalLineEnd = M + 110;
-  const approvalLineWidth = approvalLineEnd - approvalLineStart;
-  
   doc.setFont("helvetica", "normal");
-  doc.text(techName || "—", approvalLineStart + (approvalLineWidth / 2), y + 6, { align: "center" });
-  doc.line(approvalLineStart, y + 6.5, approvalLineEnd, y + 6.5);
+  doc.text(techName || "—", approvalLineStart + 36, y + 5, { align: "center" });
+  doc.line(approvalLineStart, y + 5.5, approvalLineEnd, y + 5.5);
   
-  y += 22; // Espaço para a assinatura digital
+  y += 18;
 
   // Signatures area
   doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-  doc.text("Assinatura do técnico:", M, y + 6);
-  doc.line(M + 35, y + 6.5, M + 100, y + 6.5); // Aumentei um pouco a linha
+  doc.text("Assinatura do técnico:", M, y + 5);
+  doc.line(M + 35, y + 5.5, M + 100, y + 5.5);
   
-  doc.text("Assinatura do cliente:", M + 105, y + 6);
-  doc.line(M + 140, y + 6.5, M + 195, y + 6.5);
+  doc.text("Assinatura do cliente:", M + 105, y + 5);
+  doc.line(M + 140, y + 5.5, M + 195, y + 5.5);
 
-  // Posicionamento das imagens das assinaturas
   if (techSignature) {
-    try { doc.addImage(techSignature, "PNG", M + 45, y - 14, 45, 20); } catch {}
+    try { doc.addImage(techSignature, "PNG", M + 45, y - 12, 45, 16); } catch {}
   }
   if (clientSignature) {
-    try { doc.addImage(clientSignature, "PNG", M + 145, y - 14, 45, 20); } catch {}
+    try { doc.addImage(clientSignature, "PNG", M + 145, y - 12, 45, 16); } catch {}
   }
   
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
-  doc.text(c.client_name || "—", M + 167.5, y + 10, { align: "center" });
+  doc.text(c.client_name || "—", M + 167.5, y + 9, { align: "center" });
   
-  y += 15; // Espaço final antes do quadro de investigação
+  y += 12;
 
-  // Investigação box
-  doc.rect(M, y, RW, 18);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-  doc.text("INVESTIGAÇÃO (PARA USO DA GESTÃO DA QUALIDADE):", M + 1.2, y + 4);
-  y += 18;
-
-  doc.rect(M, y, RW, 8);
-  doc.text("Realizou Ação Corretiva/Preventiva?", M + 1.2, y + 5.5);
+  // Investigação box (Fixo no final)
+  doc.rect(M, y, RW, 15);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+  doc.text("INVESTIGAÇÃO (PARA USO DA GESTÃO DA QUALIDADE):", M + 1.2, y + 3.5);
   
-  // INVESTIGAÇÃO Checks
+  y += 15;
+  doc.rect(M, y, RW, 7);
+  doc.text("Realizou Ação Corretiva/Preventiva?", M + 1.2, y + 5);
   const invX = M + 55;
-  const boxS = 2.6;
-  doc.rect(invX, y + 2, boxS, boxS);
-  doc.text("NÃO", invX + 4, y + 5.5);
-  doc.rect(invX + 15, y + 2, boxS, boxS);
-  doc.text("SIM", invX + 19, y + 5.5);
-  
-  doc.text("Nº:", invX + 30, y + 5.5);
-  doc.line(invX + 35, y + 5.5, invX + 65, y + 5.5);
-  
-  doc.text("Data:", invX + 70, y + 5.5);
-  doc.line(invX + 80, y + 5.5, invX + 115, y + 5.5);
-  
-  doc.text("___/___/______", invX + 82, y + 5.5);
+  doc.rect(invX, y + 2, 2.4, 2.4);
+  doc.text("NÃO", invX + 3.5, y + 5);
+  doc.rect(invX + 12, y + 2, 2.4, 2.4);
+  doc.text("SIM", invX + 15.5, y + 5);
+  doc.text("Nº:", invX + 25, y + 5);
+  doc.line(invX + 30, y + 5.5, invX + 60, y + 5.5);
+  doc.text("Data: ___/___/______", invX + 65, y + 5);
 
   doc.save(`Relatorio-${(c.report_type || "OS").toUpperCase()}-${(c.client_name || "cliente").replace(/\s+/g, "_")}-${c.service_date}.pdf`);
 }
