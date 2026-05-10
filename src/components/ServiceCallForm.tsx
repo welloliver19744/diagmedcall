@@ -11,7 +11,73 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SignaturePad } from "@/components/SignaturePad";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Wand2 } from "lucide-react";
+
+// ... (dentro do componente ServiceCallForm, antes do return)
+
+  const askAI = async (type: "diagnosis" | "refine") => {
+    const prompt = type === "diagnosis" 
+      ? `Com base no defeito relatado: "${form.reported_defect}", sugira causas prováveis e ações técnicas.`
+      : `Refine e formalize este texto de serviço realizado para um relatório técnico: "${form.service_performed}"`;
+
+    toast.info("Consultando Assistente de IA...");
+    
+    try {
+      // Tenta usar a Edge Function do Supabase primeiro
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: { prompt, type }
+      });
+      
+      if (!error && data?.suggestion) {
+        if (type === "diagnosis") {
+          set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + data.suggestion);
+        } else {
+          set("service_performed", data.suggestion);
+        }
+        toast.success("IA processou com sucesso!");
+        return;
+      }
+
+      // Plano B: Chamada direta para o Groq se você tiver a VITE_GROQ_API_KEY no .env
+      const localKey = import.meta.env.VITE_GROQ_API_KEY;
+      if (localKey) {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${localKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama3-8b-8192",
+            messages: [
+              { 
+                role: "system", 
+                content: type === "diagnosis" 
+                  ? "Especialista em manutenção de equipamentos médicos. Sugira causas e soluções." 
+                  : "Revisor técnico. Formalize o texto do serviço realizado." 
+              },
+              { role: "user", content: prompt }
+            ],
+            temperature: 0.5,
+          }),
+        });
+        
+        const resData = await response.json();
+        const suggestion = resData.choices[0].message.content;
+        
+        if (type === "diagnosis") {
+          set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + suggestion);
+        } else {
+          set("service_performed", suggestion);
+        }
+        toast.success("IA processou via chave local!");
+      } else {
+        throw new Error("Nenhuma chave de IA configurada.");
+      }
+    } catch (err: any) {
+      toast.error("Erro na IA: Adicione VITE_GROQ_API_KEY no seu arquivo .env");
+    }
+  };
 import type { Tables } from "@/integrations/supabase/types";
 
 type ClientRow = Tables<"clients">;
@@ -363,10 +429,38 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
             </TabsContent>
 
             <TabsContent value="servico" className="space-y-4 pt-4">
-              <div className="space-y-2"><Label>Descrição do problema</Label>
-                <Textarea rows={3} value={form.reported_defect} onChange={(e) => set("reported_defect", e.target.value)} /></div>
-              <div className="space-y-2"><Label>Causa diagnosticada e ação corretiva / reparo realizado</Label>
-                <Textarea rows={4} value={form.service_performed} onChange={(e) => set("service_performed", e.target.value)} /></div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Descrição do problema</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] gap-1 text-primary"
+                    onClick={() => askAI("diagnosis")}
+                    disabled={!form.reported_defect}
+                  >
+                    <Sparkles className="w-3 h-3" /> Sugerir Causa (IA)
+                  </Button>
+                </div>
+                <Textarea rows={3} value={form.reported_defect} onChange={(e) => set("reported_defect", e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Causa diagnosticada e ação corretiva / reparo realizado</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] gap-1 text-primary"
+                    onClick={() => askAI("refine")}
+                    disabled={!form.service_performed}
+                  >
+                    <Wand2 className="w-3 h-3" /> Melhorar texto (IA)
+                  </Button>
+                </div>
+                <Textarea rows={4} value={form.service_performed} onChange={(e) => set("service_performed", e.target.value)} />
+              </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Verificado e testado?</Label>
                   <TriRadio value={form.verified_tested} onChange={(v) => set("verified_tested", v)} /></div>

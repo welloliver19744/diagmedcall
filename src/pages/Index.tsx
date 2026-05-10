@@ -151,14 +151,44 @@ const Index = () => {
                         <h3 className="font-semibold text-base truncate">{c.client_name}</h3>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(c.service_date + "T00:00").toLocaleDateString("pt-BR")}</span>
-                          {c.contact && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.contact}</span>}
+                          {c.contact && (
+                            <span className="flex items-center gap-1 group">
+                              <Phone className="w-3 h-3" />
+                              {c.contact}
+                              <a 
+                                href={`https://wa.me/${c.contact.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-1 p-0.5 hover:bg-accent rounded text-green-600 transition-colors"
+                                title="Enviar WhatsApp"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Phone className="w-2.5 h-2.5" />
+                              </a>
+                            </span>
+                          )}
                           {c.technician && <span className="flex items-center gap-1"><User className="w-3 h-3" />{c.technician}</span>}
                         </div>
                       </div>
                       <Badge variant="outline" className={st.cls}>{st.label}</Badge>
                     </div>
 
-                    {c.address && <p className="text-xs text-muted-foreground flex items-start gap-1"><MapPin className="w-3 h-3 mt-0.5 shrink-0" />{c.address}</p>}
+                    {c.address && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 group">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{c.address}</span>
+                        <a 
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-1 p-1 hover:bg-accent rounded-md text-primary transition-colors"
+                          title="Abrir no Google Maps"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Share2 className="w-3 h-3" />
+                        </a>
+                      </p>
+                    )}
 
                     {c.reported_defect && (<div><p className="text-[10px] uppercase text-muted-foreground tracking-wider">Defeito</p><p className="text-sm">{c.reported_defect}</p></div>)}
                     {c.service_performed && (<div><p className="text-[10px] uppercase text-muted-foreground tracking-wider">Serviço realizado</p><p className="text-sm">{c.service_performed}</p></div>)}

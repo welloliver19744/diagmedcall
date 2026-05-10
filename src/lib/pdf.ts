@@ -71,25 +71,36 @@ export async function generateServiceCallPDF(
   const rx = W - M - 50;
   doc.setFontSize(7);
   doc.rect(rx, M, 50, 22);
-  doc.line(rx + 25, M, rx + 25, M + 22);
-  doc.line(rx, M + 8, rx + 50, M + 8);
-  doc.line(rx, M + 15, rx + 50, M + 15);
+  doc.line(rx + 25, M, rx + 25, M + 15); // vertical line for version/revision
+  doc.line(rx, M + 8, rx + 50, M + 8); // horizontal line below labels
+  doc.line(rx, M + 15, rx + 50, M + 15); // horizontal line below dates
+  
   doc.setFont("helvetica", "bold");
-  doc.text("Versão", rx + 12.5, M + 5, { align: "center" });
-  doc.text("Revisão", rx + 37.5, M + 5, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.text("002", rx + 12.5, M + 12, { align: "center" });
-  doc.text("005", rx + 37.5, M + 12, { align: "center" });
-  doc.text("25/07/2021", rx + 12.5, M + 19, { align: "center" });
-  doc.text("05/06/2024", rx + 37.5, M + 19, { align: "center" });
+  doc.text("Versão", rx + 12.5, M + 4, { align: "center" });
+  doc.text("002", rx + 19, M + 4, { align: "left" });
+  doc.text("Revisão", rx + 37.5, M + 4, { align: "center" });
+  doc.text("005", rx + 44, M + 4, { align: "left" });
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("25/07/ 2021", rx + 12.5, M + 12, { align: "center" });
+  doc.text("05/06/2024", rx + 37.5, M + 12, { align: "center" });
+  
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+  doc.text("Datas", rx + 25, M + 20, { align: "center" });
 
   // Title bar
   let y = M + 22;
   doc.rect(M, y, RW, 8);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-  doc.text("F: 024 — RELATÓRIO DE CHAMADA DE SERVIÇO (AT)", M + 2, y + 5.5);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("Título: F: 024; RELATÓRIO DE CHAMADA DE SERVIÇO (AT)", M + 20, y + 5.5);
+  
+  // Page number box
+  const pgW = 25;
+  doc.rect(W - M - pgW, y, pgW, 8);
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
-  doc.text("Nº página: 1/1", W - M - 2, y + 5.5, { align: "right" });
+  doc.text("Nº página", W - M - pgW + 2, y + 5.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("1/1", W - M - 2, y + 5.5, { align: "right" });
   y += 8;
 
   // Helper: row of cells
@@ -107,44 +118,26 @@ export async function generateServiceCallPDF(
 
   const drawCheckCell = (x: number, yy: number, w: number, h: number, label: string, val?: boolean | null) => {
     doc.rect(x, yy, w, h);
-    // Reserve right area for SIM/NÃO checkboxes
-    const boxAreaW = 26;
-    const boxAreaX = x + w - boxAreaW;
-    // Label (wrap within remaining width)
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(80);
-    const labelLines = doc.splitTextToSize(label, w - boxAreaW - 2);
-    doc.text(labelLines, x + 1.2, yy + 3.2);
-    doc.setTextColor(0);
-
-    // Checkbox geometry — centered vertically inside the cell
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(0);
+    doc.text(label, x + 1.2, yy + h / 2 + 1);
+    
+    const textW = doc.getTextWidth(label);
     const boxSize = 2.6;
-    const midY = yy + h / 2;
-    const boxY = midY - boxSize / 2;
-    // Text baseline aligned to box center
-    const textY = midY + 1;
+    const boxY = yy + h / 2 - boxSize / 2;
+    const textY = yy + h / 2 + 1;
 
     // SIM
-    const simBoxX = boxAreaX + 1;
-    doc.setLineWidth(0.25);
+    const simBoxX = x + textW + 4;
+    doc.setLineWidth(0.2);
     doc.rect(simBoxX, boxY, boxSize, boxSize);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
     doc.text("SIM", simBoxX + boxSize + 1.2, textY);
-    if (val === true) {
-      doc.setFontSize(8);
-      doc.text("X", simBoxX + boxSize / 2, boxY + boxSize - 0.4, { align: "center" });
-    }
+    if (val === true) doc.text("X", simBoxX + 0.6, textY);
 
     // NÃO
-    const naoBoxX = boxAreaX + 13;
-    doc.setLineWidth(0.25);
+    const naoBoxX = simBoxX + 12;
     doc.rect(naoBoxX, boxY, boxSize, boxSize);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
     doc.text("NÃO", naoBoxX + boxSize + 1.2, textY);
-    if (val === false) {
-      doc.setFontSize(8);
-      doc.text("X", naoBoxX + boxSize / 2, boxY + boxSize - 0.4, { align: "center" });
-    }
-    doc.setFont("helvetica", "normal");
+    if (val === false) doc.text("X", naoBoxX + 0.6, textY);
   };
 
   // Row 1: Técnico + Endereço
@@ -154,8 +147,15 @@ export async function generateServiceCallPDF(
 
   // Row 2: Cliente + Data + Relatório nº
   drawCell(M, y, RW * 0.5, cellH, "Cliente:", c.client_name);
-  drawCell(M + RW * 0.5, y, RW * 0.2, cellH, "Data:", fmtDate(c.service_date));
-  drawCell(M + RW * 0.7, y, RW * 0.3, cellH, "Relatório Nº:", c.report_number ?? "");
+  drawCell(M + RW * 0.5, y, RW * 0.22, cellH, "Data:", fmtDate(c.service_date));
+  
+  // Relatório nº box
+  const relBoxX = M + RW * 0.72;
+  const relBoxW = RW * 0.28;
+  doc.rect(relBoxX, y, relBoxW, cellH);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+  doc.text("RELATÓRIO", relBoxX + relBoxW / 2, y + 3.5, { align: "center" });
+  doc.text(`Nº ${c.report_number || "000/2026"}`, relBoxX + relBoxW / 2, y + 7.5, { align: "center" });
   y += cellH;
 
   // Row 3: Tipo equip + nº série
@@ -248,36 +248,55 @@ export async function generateServiceCallPDF(
   drawTextBlock("Observações:", c.notes, 18);
 
   // Aprovado por
-  drawCell(M, y, RW, cellH, "Relatório aprovado por:", c.approved_by);
-  y += cellH;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("Relatório aprovado por:", M, y + 6);
+  doc.line(M + 38, y + 6.5, M + 100, y + 6.5);
+  y += 10;
 
   // Signatures area
-  const sigH = 30;
-  doc.rect(M, y, RW * 0.5, sigH);
-  doc.rect(M + RW * 0.5, y, RW * 0.5, sigH);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(80);
-  doc.text("Assinatura do técnico:", M + 1.2, y + 3);
-  doc.text("Assinatura do cliente:", M + RW * 0.5 + 1.2, y + 3);
-  doc.setTextColor(0);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+  doc.text("Assinatura do técnico:", M, y + 6);
+  doc.line(M + 35, y + 6.5, M + 95, y + 6.5);
+  
+  doc.text("Assinatura do cliente:", M + 100, y + 6);
+  doc.line(M + 135, y + 6.5, M + 190, y + 6.5);
 
   if (techSignature) {
-    try { doc.addImage(techSignature, "PNG", M + 4, y + 5, RW * 0.5 - 8, sigH - 10); } catch {}
+    try { doc.addImage(techSignature, "PNG", M + 38, y - 10, 50, 15); } catch {}
   }
   if (c.client_signature) {
-    try { doc.addImage(c.client_signature, "PNG", M + RW * 0.5 + 4, y + 5, RW * 0.5 - 8, sigH - 10); } catch {}
+    try { doc.addImage(c.client_signature, "PNG", M + 138, y - 10, 50, 15); } catch {}
   }
-  // Name lines
-  doc.setFontSize(8);
-  doc.text(techName || "—", M + RW * 0.25, y + sigH - 2, { align: "center" });
-  doc.text(c.client_name || "—", M + RW * 0.75, y + sigH - 2, { align: "center" });
-  y += sigH;
+  
+  doc.setFontSize(8); doc.setFont("helvetica", "normal");
+  doc.text(techName || "—", M + 65, y + 10, { align: "center" });
+  doc.text(c.client_name || "—", M + 162.5, y + 10, { align: "center" });
+  y += 15;
 
   // Investigação box
-  drawTextBlock("INVESTIGAÇÃO (PARA USO DA GESTÃO DA QUALIDADE):", "", 18);
-  doc.rect(M, y, RW, cellH);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(80);
-  doc.text("Realizou Ação Corretiva/Preventiva?   [ ] NÃO   [ ] SIM     Nº: ____________     Data: ___/___/______", M + 1.2, y + 5.5);
-  y += cellH;
+  doc.rect(M, y, RW, 18);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+  doc.text("INVESTIGAÇÃO (PARA USO DA GESTÃO DA QUALIDADE):", M + 1.2, y + 4);
+  y += 18;
+
+  doc.rect(M, y, RW, 8);
+  doc.text("Realizou Ação Corretiva/Preventiva?", M + 1.2, y + 5.5);
+  
+  // INVESTIGAÇÃO Checks
+  const invX = M + 55;
+  const boxS = 2.6;
+  doc.rect(invX, y + 2, boxS, boxS);
+  doc.text("NÃO", invX + 4, y + 5.5);
+  doc.rect(invX + 15, y + 2, boxS, boxS);
+  doc.text("SIM", invX + 19, y + 5.5);
+  
+  doc.text("Nº:", invX + 30, y + 5.5);
+  doc.line(invX + 35, y + 5.5, invX + 65, y + 5.5);
+  
+  doc.text("Data:", invX + 70, y + 5.5);
+  doc.line(invX + 80, y + 5.5, invX + 115, y + 5.5);
+  
+  doc.text("___/___/______", invX + 82, y + 5);
 
   doc.save(`Relatorio-${(c.report_type || "OS").toUpperCase()}-${(c.client_name || "cliente").replace(/\s+/g, "_")}-${c.service_date}.pdf`);
 }
