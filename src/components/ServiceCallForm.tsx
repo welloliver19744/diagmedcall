@@ -79,18 +79,16 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
 
   const askAI = async (type: "diagnosis" | "refine") => {
     const prompt = type === "diagnosis" 
-      ? `Com base no defeito relatado: "${form.reported_defect}", sugira causas prováveis e ações técnicas.`
-      : `Refine e formalize este texto de serviço realizado para um relatório técnico: "${form.service_performed}"`;
+      ? `O técnico relatou o seguinte defeito: "${form.reported_defect}". Com base na sua experiência em equipamentos médicos de Litotripsia e Laser, quais são as 3 causas mais prováveis e o que deve ser medido ou testado agora?`
+      : `Refine e formalize este texto de serviço realizado para um relatório técnico oficial, mantendo todos os detalhes técnicos mas tornando-o profissional: "${form.service_performed}"`;
 
     console.log("Iniciando chamada de IA...", { type, prompt });
     toast.info("Consultando Assistente de IA...");
     
     try {
       const localKey = import.meta.env.VITE_GROQ_API_KEY;
-      console.log("Chave local encontrada?", !!localKey);
-
+      
       if (!localKey) {
-        console.log("Tentando Edge Function do Supabase...");
         const { data, error } = await supabase.functions.invoke("ai-assistant", {
           body: { prompt, type }
         });
@@ -98,7 +96,7 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
         if (error) throw error;
         if (data?.suggestion) {
           if (type === "diagnosis") {
-            set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + data.suggestion);
+            set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão de Diagnóstico IA:\n" + data.suggestion);
           } else {
             set("service_performed", data.suggestion);
           }
@@ -106,7 +104,10 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
           return;
         }
       } else {
-        console.log("Fazendo chamada direta ao Groq...");
+        const systemPrompt = type === "diagnosis"
+          ? "Você é um Engenheiro Clínico Sênior especialista em Litotripsia e Laser. Sua tarefa é analisar defeitos e sugerir causas técnicas prováveis e ações corretivas. Seja específico e profissional."
+          : "Você é um revisor de relatórios técnicos. Sua tarefa é transformar anotações de serviço em um texto formal e bem escrito, sem inventar informações novas.";
+
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -116,28 +117,21 @@ export const ServiceCallForm = ({ open, onOpenChange, editing, onSaved }: Props)
           body: JSON.stringify({
             model: "llama-3.1-8b-instant",
             messages: [
-              { 
-                role: "system", 
-                content: "Você é um especialista em manutenção de equipamentos médicos. Analise o defeito e sugira causas e soluções técnicas." 
-              },
+              { role: "system", content: systemPrompt },
               { role: "user", content: prompt }
             ],
-            temperature: 0.5,
+            temperature: type === "diagnosis" ? 0.7 : 0.3,
           }),
         });
         
         const resData = await response.json();
-        console.log("Resposta do Groq recebida:", resData);
-        
-        if (!response.ok) {
-          throw new Error(resData.error?.message || `Erro HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(resData.error?.message || `Erro HTTP ${response.status}`);
 
         const suggestion = resData.choices?.[0]?.message?.content;
         if (!suggestion) throw new Error("IA não retornou conteúdo.");
         
         if (type === "diagnosis") {
-          set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + suggestion);
+          set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão de Diagnóstico IA:\n" + suggestion);
         } else {
           set("service_performed", suggestion);
         }
