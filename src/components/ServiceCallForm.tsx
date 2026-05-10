@@ -20,13 +20,31 @@ import { Plus, Trash2, Sparkles, Wand2 } from "lucide-react";
       ? `Com base no defeito relatado: "${form.reported_defect}", sugira causas prováveis e ações técnicas.`
       : `Refine e formalize este texto de serviço realizado para um relatório técnico: "${form.service_performed}"`;
 
+    console.log("Iniciando chamada de IA...", { type, prompt });
     toast.info("Consultando Assistente de IA...");
     
     try {
-      // Força o uso da chave local se estiver disponível no ambiente (Vercel ou .env)
       const localKey = import.meta.env.VITE_GROQ_API_KEY;
-      
-      if (localKey) {
+      console.log("Chave local encontrada?", !!localKey);
+
+      if (!localKey) {
+        console.log("Tentando Edge Function do Supabase...");
+        const { data, error } = await supabase.functions.invoke("ai-assistant", {
+          body: { prompt, type }
+        });
+        
+        if (error) throw error;
+        if (data?.suggestion) {
+          if (type === "diagnosis") {
+            set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + data.suggestion);
+          } else {
+            set("service_performed", data.suggestion);
+          }
+          toast.success("IA processou via servidor!");
+          return;
+        }
+      } else {
+        console.log("Fazendo chamada direta ao Groq...");
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -49,42 +67,24 @@ import { Plus, Trash2, Sparkles, Wand2 } from "lucide-react";
         });
         
         const resData = await response.json();
+        console.log("Resposta do Groq recebida:", resData);
         
         if (!response.ok) {
-          throw new Error(resData.error?.message || "Erro na resposta do Groq");
+          throw new Error(resData.error?.message || `Erro HTTP ${response.status}`);
         }
 
         const suggestion = resData.choices?.[0]?.message?.content;
         if (!suggestion) throw new Error("IA não retornou conteúdo.");
         
         if (type === "diagnosis") {
-          // No diagnóstico, adicionamos ao texto existente
           set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + suggestion);
         } else {
-          // Na melhoria de texto, substituímos pelo texto formal
           set("service_performed", suggestion);
         }
         toast.success("IA processou com sucesso!");
-        return;
-      }
-
-      // Se não houver chave local, tenta a Edge Function como fallback
-      const { data, error } = await supabase.functions.invoke("ai-assistant", {
-        body: { prompt, type }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.suggestion) {
-        if (type === "diagnosis") {
-          set("service_performed", (form.service_performed ? form.service_performed + "\n\n" : "") + "Sugestão IA:\n" + data.suggestion);
-        } else {
-          set("service_performed", data.suggestion);
-        }
-        toast.success("IA processou via servidor!");
       }
     } catch (err: any) {
-      console.error("Erro IA:", err);
+      console.error("ERRO CRÍTICO NA IA:", err);
       toast.error("Erro na IA: " + err.message);
     }
   };
