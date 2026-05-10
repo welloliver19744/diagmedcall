@@ -40,7 +40,10 @@ export async function generateServiceCallPDF(
   preloaded?: { techName?: string | null; techSignatureUrl?: string | null }
 ) {
   let techSignature: string | null = null;
+  let clientSignature: string | null = null;
   let techName = c.technician ?? "";
+
+  // Preload technician signature
   if (preloaded) {
     techName = techName || preloaded.techName || "";
     if (preloaded.techSignatureUrl) techSignature = await urlToDataUrl(preloaded.techSignatureUrl);
@@ -49,6 +52,15 @@ export async function generateServiceCallPDF(
     if (data) {
       techName = techName || data.full_name || "";
       if ((data as any).signature_url) techSignature = await urlToDataUrl((data as any).signature_url);
+    }
+  }
+
+  // Preload client signature if it's a URL (from Supabase storage)
+  if (c.client_signature) {
+    if (c.client_signature.startsWith("http")) {
+      clientSignature = await urlToDataUrl(c.client_signature);
+    } else {
+      clientSignature = c.client_signature; // already a dataUrl
     }
   }
 
@@ -104,16 +116,16 @@ export async function generateServiceCallPDF(
   y += 8;
 
   // Helper: row of cells
-  const cellH = 9;
+  const cellH = 10;
   doc.setFontSize(8);
 
   const drawCell = (x: number, yy: number, w: number, h: number, label: string, value?: string | null) => {
     doc.rect(x, yy, w, h);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(80);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(6.5); doc.setTextColor(80);
     doc.text(label, x + 1.2, yy + 3);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(0);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
     const lines = doc.splitTextToSize(value ?? "", w - 2.4);
-    doc.text(lines.slice(0, 2), x + 1.2, yy + 7);
+    doc.text(lines.slice(0, 2), x + 1.2, yy + 7, { lineHeightFactor: 1.1 });
   };
 
   const drawCheckCell = (x: number, yy: number, w: number, h: number, label: string, val?: boolean | null) => {
@@ -155,7 +167,7 @@ export async function generateServiceCallPDF(
   doc.rect(relBoxX, y, relBoxW, cellH);
   doc.setFont("helvetica", "bold"); doc.setFontSize(8);
   doc.text("RELATÓRIO", relBoxX + relBoxW / 2, y + 3.5, { align: "center" });
-  doc.text(`Nº ${c.report_number || "000/2026"}`, relBoxX + relBoxW / 2, y + 7.5, { align: "center" });
+  doc.text(`Nº ${c.report_number || "—"}`, relBoxX + relBoxW / 2, y + 7.5, { align: "center" });
   y += cellH;
 
   // Row 3: Tipo equip + nº série
@@ -186,34 +198,26 @@ export async function generateServiceCallPDF(
   drawCheckCell(M, y, RW, cellH, "O equipamento estava em funcionamento antes do reparo?", c.working_before);
   y += cellH;
 
-  // Block: descrição do problema
-  const drawTextBlock = (label: string, value: string | null | undefined, h: number) => {
+  // Helper for dynamic multi-line blocks
+  const drawDynamicBlock = (label: string, value: string | null | undefined, minH: number) => {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    const lines = doc.splitTextToSize(value ?? "", RW - 4);
+    const textH = lines.length * 4.5; // roughly 4.5mm per line
+    const h = Math.max(minH, textH + 8);
+    
     doc.rect(M, y, RW, h);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(7); doc.setTextColor(80);
-    doc.text(label, M + 1.2, y + 3);
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(0);
-    const lines = doc.splitTextToSize(value ?? "", RW - 2.4);
-    doc.text(lines, M + 1.2, y + 7);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.text(label, M + 1.2, y + 4);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.text(lines, M + 1.2, y + 9, { lineHeightFactor: 1.15 });
     y += h;
   };
 
   // Row 8: Descrição do problema
-  doc.rect(M, y, RW, 35);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-  doc.text("Descrição do problema:", M + 1.2, y + 4);
-  doc.setFont("helvetica", "normal");
-  const defectLines = doc.splitTextToSize(c.reported_defect || "", RW - 4);
-  doc.text(defectLines, M + 1.2, y + 8);
-  y += 35;
+  drawDynamicBlock("Descrição do problema:", c.reported_defect, 30);
 
-  // Row 9: Causa diagnosticada e ação corretiva (Espaço ampliado)
-  doc.rect(M, y, RW, 65);
-  doc.setFont("helvetica", "bold");
-  doc.text("Causa do problema diagnosticado pelo técnico e ação corretiva de serviço ou reparo realizado:", M + 1.2, y + 4);
-  doc.setFont("helvetica", "normal");
-  const serviceLines = doc.splitTextToSize(c.service_performed || "", RW - 4);
-  doc.text(serviceLines, M + 1.2, y + 8);
-  y += 65;
+  // Row 9: Causa diagnosticada e ação corretiva
+  drawDynamicBlock("Causa do problema diagnosticado pelo técnico e ação corretiva de serviço ou reparo realizado:", c.service_performed, 50);
 
   // Row 10: Verificado e testado?
   const testW = RW * 0.55;
@@ -288,17 +292,11 @@ export async function generateServiceCallPDF(
     const prio = c.parts_priority === "urgente" ? "Urgente [X]   Padrão [ ]" : c.parts_priority === "padrao" ? "Padrão [X]   Urgente [ ]" : "Padrão [ ]   Urgente [ ]";
     drawPartsTable("Peças a serem requisitadas", Array.isArray(c.parts_requested) ? c.parts_requested : [], prio);
   } else if (c.parts_replaced) {
-    drawTextBlock("Peças trocadas:", c.parts_replaced, 14);
+    drawDynamicBlock("Peças trocadas:", c.parts_replaced, 15);
   }
 
   // Row 12: Observações
-  doc.rect(M, y, RW, 12);
-  doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-  doc.text("Observações:", M + 1.2, y + 4);
-  doc.setFont("helvetica", "normal");
-  const obsLines = doc.splitTextToSize(c.notes || "", RW - 4);
-  doc.text(obsLines, M + 1.2, y + 8);
-  y += 12;
+  drawDynamicBlock("Observações:", c.notes, 15);
 
   y += 5; // Espaço antes das assinaturas
 
@@ -317,10 +315,10 @@ export async function generateServiceCallPDF(
   doc.line(M + 135, y + 6.5, M + 190, y + 6.5);
 
   if (techSignature) {
-    try { doc.addImage(techSignature, "PNG", M + 38, y - 10, 50, 15); } catch {}
+    try { doc.addImage(techSignature, "PNG", M + 40, y - 10, 45, 15); } catch {}
   }
-  if (c.client_signature) {
-    try { doc.addImage(c.client_signature, "PNG", M + 138, y - 10, 50, 15); } catch {}
+  if (clientSignature) {
+    try { doc.addImage(clientSignature, "PNG", M + 140, y - 10, 45, 15); } catch {}
   }
   
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
@@ -351,7 +349,7 @@ export async function generateServiceCallPDF(
   doc.text("Data:", invX + 70, y + 5.5);
   doc.line(invX + 80, y + 5.5, invX + 115, y + 5.5);
   
-  doc.text("___/___/______", invX + 82, y + 5);
+  doc.text("___/___/______", invX + 82, y + 5.5);
 
   doc.save(`Relatorio-${(c.report_type || "OS").toUpperCase()}-${(c.client_name || "cliente").replace(/\s+/g, "_")}-${c.service_date}.pdf`);
 }
